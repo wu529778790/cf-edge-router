@@ -1,0 +1,14 @@
+{
+  "name": "cf-edge-router",
+  "version": "0.1.0",
+  "description": "Cloudflare Workers 轻量边缘调度器：免费替代 Load Balancer 的容灾/灰度方案",
+  "private": false,
+  "license": "MIT",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
