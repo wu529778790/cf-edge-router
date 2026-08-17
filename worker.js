@@ -19,7 +19,8 @@
  * - fallback 目标通常是同一应用的另一个 Worker（数据共享 D1/KV 时接管无缝）
  */
 
-const DEFAULT_HEALTH_TTL_SEC = 60;
+// TTL 必须大于 Cron 间隔（60s）：等于间隔会因调度抖动产生过期竞态
+const DEFAULT_HEALTH_TTL_SEC = 120;
 const DEFAULT_HEALTH_TIMEOUT_MS = 5000;
 const DEFAULT_WEIGHT_DOCKER = 100;
 
@@ -58,7 +59,8 @@ export default {
         target.protocol = new URL(dockerOrigin).protocol;
         target.hostname = new URL(dockerOrigin).hostname;
         target.port = new URL(dockerOrigin).port || (target.protocol === "https:" ? "443" : "80");
-        const upstream = await fetch(buildUpstreamRequest(request, target.toString(), dockerHost));
+        // request.clone()：body 流只能消费一次，回源与 fallback 各持一份
+        const upstream = await fetch(buildUpstreamRequest(request.clone(), target.toString(), dockerHost));
         // 4xx 视为主源正常响应；5xx 视为异常（不立刻改 KV，交给 Cron 判定）
         if (upstream.status < 500) return upstream;
         console.log("[cf-edge-router] 主源 5xx", upstream.status);
@@ -67,17 +69,27 @@ export default {
       }
     }
 
-    // 4) fallback：转发到备用 Worker（显式构造，避免 Host 回环）
+    // 4) fallback：优先用 Service Binding（env.FALLBACK）直调备用 Worker。
+    //    ⚠️ 同 zone 的 Worker 之间用 fetch() 会被 Cloudflare 拦截（error 1042），
+    //    必须配 [[services]] binding（wrangler.toml 见示例）。
+    //    ⚠️ 必须 request.clone()：回源已消费 body 时复用同一 request 会抛
+    //    "Cannot reconstruct a Request with a used body"。
     try {
-      const target = new URL(request.url);
-      target.protocol = "https:";
-      target.hostname = new URL(fallbackWorker).hostname;
-      target.port = "";
-      return await fetch(buildUpstreamRequest(request, target.toString(), new URL(fallbackWorker).hostname));
+      if (env.FALLBACK) {
+        return await env.FALLBACK.fetch(request.clone());
+      }
+      if (fallbackWorker) {
+        const target = new URL(request.url);
+        target.protocol = "https:";
+        target.hostname = new URL(fallbackWorker).hostname;
+        target.port = "";
+        return await fetch(buildUpstreamRequest(request.clone(), target.toString(), new URL(fallbackWorker).hostname));
+      }
+      console.log("[cf-edge-router] 未配置 fallback（FALLBACK binding 或 FALLBACK_WORKER）");
     } catch (e) {
       console.log("[cf-edge-router] fallback 失败:", e && e.message ? e.message : String(e));
-      return new Response("cf-edge-router unavailable", { status: 502 });
     }
+    return new Response("cf-edge-router unavailable", { status: 502 });
   },
 };
 

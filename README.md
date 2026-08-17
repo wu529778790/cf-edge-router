@@ -65,7 +65,7 @@ npx wrangler deploy
 | `FALLBACK_WORKER` | ✅ | - | 备用 Worker（如 `https://app.example.workers.dev`） |
 | `HEALTH_PATH` | - | `/api/health` | 主源健康检查路径（2xx 视为健康） |
 | `WEIGHT_DOCKER` | - | `100` | 主源流量权重 %（0-100；100=纯容灾） |
-| `HEALTH_TTL_SEC` | - | `60` | 健康状态缓存 TTL（秒） |
+| `HEALTH_TTL_SEC` | - | `120` | 健康状态缓存 TTL（秒，须 > Cron 间隔 60s） |
 | `HEALTH_TIMEOUT_MS` | - | `5000` | 健康探测超时（毫秒） |
 
 ## Roadmap

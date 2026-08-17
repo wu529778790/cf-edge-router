@@ -7,6 +7,12 @@ compatibility_date = "2025-07-15"
 binding = "ROUTER_STATE"
 id = "<你的 KV namespace id>" # 创建：npx wrangler kv namespace create ROUTER_STATE
 
+# 备用 Worker（fallback 目标）：Service Binding 直调。
+# ⚠️ 同 zone Worker 之间禁止用 fetch()（error 1042），必须用 Service Binding。
+[[services]]
+binding = "FALLBACK"
+service = "<备用 worker 名>" # 如 panhub-shenzjd-com
+
 # 每 1 分钟探测主源健康（免费计划 Cron 最小间隔 1 分钟）
 [triggers]
 crons = ["*/1 * * * *"]
@@ -17,14 +23,15 @@ crons = ["*/1 * * * *"]
 DOCKER_ORIGIN = "http://origin.example.com"
 # 回源时发送的 Host 头（主源 OpenResty 按它分发到对应站点）
 DOCKER_HOST = "www.example.com"
-# 备用 Worker（主源故障时接管；数据共享 D1/KV 时无缝）
+# 备用 Worker（主源故障时接管；数据共享 D1/KV 时无缝）。
+# 推荐用 [[services]] binding 直调（见上）；此变量为兼容备选（同 zone 场景会 1042，勿用）
 FALLBACK_WORKER = "https://your-app.example.workers.dev"
 # 健康检查路径（主源需返回 2xx）
 HEALTH_PATH = "/api/health"
 # 主源流量权重（0-100）：100=全走主源（纯容灾），90=10% 流量灰度到备用
 WEIGHT_DOCKER = "100"
-# 健康状态 TTL（秒）与探测超时（毫秒）
-HEALTH_TTL_SEC = "60"
+# 健康状态 TTL（秒）与探测超时（毫秒）：TTL 必须大于 Cron 间隔（60s）
+HEALTH_TTL_SEC = "120"
 HEALTH_TIMEOUT_MS = "5000"
 
 # ===== 路由：接管域名流量（最后一步启用，取消注释即可）=====
