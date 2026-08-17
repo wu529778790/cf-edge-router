@@ -1,4 +1,4 @@
-name = "panhub-router"
+name = "cf-edge-router"
 main = "worker.js"
 compatibility_date = "2025-07-15"
 
