@@ -1,5 +1,10 @@
 # cf-edge-router
 
+> ⚠️ **本项目已归档（archived），不再维护。**
+>
+> 下线原因：Worker「每请求转发」会烧光免费配额（10 万次/天），不适用于实际流量。
+> 替代方案见新项目 [edge-balancer](https://github.com/wu529778790/edge-balancer) —— Docker 部署的服务器端多云流量分发器，不烧 Cloudflare 配额。
+
 > 在 Cloudflare Workers 上运行的开源轻量边缘调度器 —— 免费替代 Load Balancer 的"逻辑等价"方案。
 
 **单 Worker 实现主源/备用双活**：健康检查 + 自动容灾 + 权重灰度，全部跑在 Cloudflare 边缘，零服务器成本。
